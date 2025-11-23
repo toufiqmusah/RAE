@@ -529,6 +529,8 @@ def main():
             )
             if args.wandb:
                 wandb_utils.log(epoch_stats, step=global_step)
+
+        print(f"Completed epoch {epoch} | stats: {epoch_metrics}")
     cleanup_distributed()
 
 
