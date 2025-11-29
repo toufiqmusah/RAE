@@ -16,8 +16,14 @@ def collect_images(src_dataset_root, dst_dataset_root):
     """
     os.makedirs(dst_dataset_root, exist_ok=True)
 
-    for root, _, files in os.walk(src_dataset_root):
+    for root, dirs, files in os.walk(src_dataset_root):
+        # skip "_mask" 
+        dirs[:] = [d for d in dirs if "_mask" not in d]
+        
         for file in files:
+            if "_mask" in file:
+                continue
+                
             if not is_image(file):
                 continue
 
@@ -41,6 +47,10 @@ def main():
     os.makedirs(final_output_dir, exist_ok=True)
 
     for item in os.listdir(args.input_path):
+        # Skip top-level directories with "_mask" in the name
+        if "_mask" in item:
+            continue
+            
         src_item_path = os.path.join(args.input_path, item)
 
         if os.path.isdir(src_item_path):
