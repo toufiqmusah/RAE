@@ -1,0 +1,61 @@
+stage_1:
+  target: stage1.RAE
+  params:
+    encoder_cls: 'Dinov3withNorm'
+    encoder_config_path: 'facebook/dinov3-vitl16-pretrain-lvd1689m'
+    encoder_input_size: 224
+    encoder_params:
+      dinov3_path: 'facebook/dinov3-vitl16-pretrain-lvd1689m'
+      normalize: true
+    decoder_config_path: 'configs/decoder/ViTXL'
+    pretrained_decoder_path: 'models/decoders/dinov3/vitl16/ViTXL_n08/model.pt'
+    noise_tau: 0.
+    reshape_to_2d: true
+    normalization_stat_path: 'models/stats/dinov3/vitl16/imagenet1k/stat.pt'
+
+stage_2:
+  target: stage2.models.DDT.DiTwDDTHead
+  params:
+    input_size: 14
+    patch_size: 1
+    in_channels: 1024
+    hidden_size: [1152, 2048]
+    depth: [28, 2]
+    num_heads: [16, 16]
+    mlp_ratio: 4.0
+    class_dropout_prob: 0.1
+    num_classes: 1000
+    use_qknorm: false
+    use_swiglu: true
+    use_rope: true
+    use_rmsnorm: true
+    wo_shift: false
+    use_pos_embed: true
+  ckpt: 'models/DiTs/DINOv3/vitl16/ImageNet256/DiTDH-XL/stage2_model.pt'
+
+transport:
+  params:
+    path_type: 'Linear'
+    prediction: 'velocity'
+    time_dist_type: 'uniform'
+
+sampler:
+  mode: ODE
+  params:
+    sampling_method: 'euler'
+    num_steps: 50
+    atol: 1e-6
+    rtol: 1e-3
+    reverse: false
+
+guidance:
+  method: 'cfg'
+  scale: 1.0
+  t-min: 0.0
+  t-max: 1.0
+
+misc:
+  latent_size: [1024, 14, 14]
+  num_classes: 1000
+  time_dist_shift_dim: 200704
+  time_dist_shift_base: 4096
