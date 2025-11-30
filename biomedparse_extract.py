@@ -1,6 +1,7 @@
 import os
 import shutil
 import argparse
+from tqdm import tqdm
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
 
@@ -8,58 +9,55 @@ def is_image(file_name):
     ext = os.path.splitext(file_name)[1].lower()
     return ext in IMAGE_EXTENSIONS
 
-
 def collect_images(src_dataset_root, dst_dataset_root):
-    """
-    src_dataset_root = BiomedParseData/GlS
-    dst_dataset_root = BiomedParseDataset/GlS
-    """
     os.makedirs(dst_dataset_root, exist_ok=True)
 
-    for root, dirs, files in os.walk(src_dataset_root):
-        # skip "_mask" 
-        dirs[:] = [d for d in dirs if "_mask" not in d]
+    walk = list(os.walk(src_dataset_root))
+    for root, dirs, files in tqdm(walk, desc=f"Processing folders in {src_dataset_root}"):
+        dirs[:] = [d for d in dirs if "_mask" not in d]  # skip mask folders
         
-        for file in files:
+        for file in tqdm(files, desc="Copying images", leave=False, colour="yellow"):
             if "_mask" in file:
                 continue
-                
             if not is_image(file):
                 continue
 
-            src_file = os.path.join(root, file)
-            dst_file = os.path.join(dst_dataset_root, file)
+            src = os.path.join(root, file)
 
-            if os.path.exists(dst_file):
-                continue
-
-            shutil.copy2(src_file, dst_file)
-
+            dst = os.path.join(dst_dataset_root, file)
+            if not os.path.exists(dst):
+                shutil.copy2(src, dst)
 
 def main():
     parser = argparse.ArgumentParser(description="BiomedParse Dataset Extractor")
-    parser.add_argument("--input_path", type=str, required=True, help="Path to BiomedParseData")
-    parser.add_argument("--output_path", type=str, required=True, help="Where to create BiomedParseDataset")
+    parser.add_argument("--input_path", type=str,  default='/pscratch/sd/j/jehr/MEDRAE/BiomedParseData')
+    parser.add_argument("--output_path", type=str, default='/pscratch/sd/j/jehr/MEDRAE/BiomedParseDataRAE')
 
     args = parser.parse_args()
 
-    final_output_dir = os.path.join(args.output_path, "BiomedParseDataset")
-    os.makedirs(final_output_dir, exist_ok=True)
+    # Train output 
+    train_output = os.path.join(args.output_path, 'train')
+    os.makedirs(train_output, exist_ok=True)
+
+    # Test output 
+    test_output = os.path.join(args.output_path, 'test')
+    os.makedirs(test_output, exist_ok=True)
 
     for item in os.listdir(args.input_path):
-        # Skip top-level directories with "_mask" in the name
         if "_mask" in item:
             continue
-            
-        src_item_path = os.path.join(args.input_path, item)
 
-        if os.path.isdir(src_item_path):
-            dst_item_path = os.path.join(final_output_dir, item)
-            # print(f"Processing: {item}")
-            collect_images(src_item_path, dst_item_path)
+        src = os.path.join(args.input_path, item)
 
-    print("Completed.")
+        if os.path.isdir(src):
+            if "test" in src.lower():
+                print(f"Processing test folder {src}, saving to {test_output}")
+                collect_images(src, os.path.join(test_output, item))
+            else:
+                print(f"Processing folder {src}  saving to  {train_output}")
+                collect_images(src, os.path.join(train_output, item))
 
+    print("\nCompleted.")
 
 if __name__ == "__main__":
     main()
