@@ -30,8 +30,8 @@ def collect_images(src_dataset_root, dst_dataset_root):
 
 def main():
     parser = argparse.ArgumentParser(description="BiomedParse Dataset Extractor")
-    parser.add_argument("--input_path", type=str,  default='/pscratch/sd/j/jehr/MEDRAE/BiomedParseData')
-    parser.add_argument("--output_path", type=str, default='/pscratch/sd/j/jehr/MEDRAE/BiomedParseDataRAE')
+    parser.add_argument("--input_path", type=str,  default='../BiomedParseData')
+    parser.add_argument("--output_path", type=str, default='../BiomedParseDataRAE')
 
     args = parser.parse_args()
 
