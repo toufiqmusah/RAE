@@ -3,6 +3,34 @@ import shutil
 import argparse
 from tqdm import tqdm
 
+
+"""
+This script reorganizes BiomedParseData in the format expected for RAE. Only transfers non-mask files.
+
+Usage:
+    python biomedparse_extract.py --input_path /path/to/BiomedParseData --output_path /path/to/output_path
+
+Output will look like:
+    output_path/
+        └── train/
+            ├── ACDC
+            ├── amos22
+            ├── CDD-CESM
+            ├── kits23
+            ├── LGG
+            ...
+
+        └── test/
+            ├── ACDC
+            ├── amos22
+            ├── CDD-CESM
+            ├── kits23
+            ├── LGG
+            ...
+"""
+
+
+
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff"}
 def is_image(f): 
     return os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
@@ -53,4 +81,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 
