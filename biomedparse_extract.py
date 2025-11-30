@@ -14,6 +14,9 @@ def collect_images(src_dataset_root, dst_dataset_root):
 
     walk = list(os.walk(src_dataset_root))
     for root, dirs, files in tqdm(walk, desc=f"Processing folders in {src_dataset_root}"):
+        if "mask" in root.lower():
+            continue  # skip entire branch
+
         dirs[:] = [d for d in dirs if "_mask" not in d]  # skip mask folders
         
         for file in tqdm(files, desc="Copying images", leave=False, colour="yellow"):
