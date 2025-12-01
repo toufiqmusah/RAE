@@ -156,12 +156,68 @@ torchrun --standalone --nproc_per_node=N \
 
 where `N` refers to the number of GPU cards available, and `--ckpt` resumes from an existing checkpoint. 
 
+```bash
+# option 1- provide wandb api key
+export WANDB_KEY="key" 
+WANDB_LOGIN=1
+
+# option 2-  use wandb login
+wandb login 
+export WANDB_LOGIN=0
+export ENTITY="brats_dann"
+export PROJECT="MEDRAE"
+
+N=4
+CONFIG=configs/stage1/training/DINOv2-B_decXL.yaml
+DATA_PATH=../BiomedParseDataRAE/train
+RESULTS_DIR=results_medrae/stage1
+
+torchrun --standalone --nproc_per_node=$N \
+  src/train_stage1.py \
+  --config $CONFIG \
+  --data-path $DATA_PATH \
+  --results-dir $RESULTS_DIR \
+  --image-size 256 \
+  --precision fp32 \
+  --wandb
+  # --ckpt <optional_ckpt> \
+```
+
+
+```bash
+# option 1- provide wandb api key
+export WANDB_KEY="key" 
+WANDB_LOGIN=1
+
+# option 2-  use wandb login
+conda activate rae
+wandb login 
+export WANDB_LOGIN=0
+export ENTITY="brats_dann"
+export PROJECT="MEDRAE"
+
+N=4
+CONFIG=configs/stage1/training/DINOv2-B_decXL_continue.yaml
+DATA_PATH=../BiomedParseDataRAE/train
+RESULTS_DIR=results_medrae_continue/stage1
+
+torchrun --standalone --nproc_per_node=$N \
+  src/train_stage1.py \
+  --config $CONFIG \
+  --data-path $DATA_PATH \
+  --results-dir $RESULTS_DIR \
+  --image-size 256 \
+  --precision fp32 \
+  --wandb
+  # --ckpt <optional_ckpt> \
+```
+
 **Logging.** To enable `wandb`, firstly set `WANDB_KEY`, `ENTITY`, and `PROJECT` as environment variables:
 
 ```bash
 export WANDB_KEY="key"
-export ENTITY="entity name"
-export PROJECT="project name"
+export ENTITY="brats_dann"
+export PROJECT="MEDRAE"
 ```
 
 Then in training command add the `--wandb` flag
@@ -177,6 +233,9 @@ python src/stage1_sample.py \
 ```
 
 For batched reconstructions and `.npz` export, run the DDP variant:
+
+
+
 
 ```bash
 torchrun --standalone --nproc_per_node=N \

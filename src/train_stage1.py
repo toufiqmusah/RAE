@@ -332,18 +332,29 @@ def main():
     global_step = 0
     if args.ckpt:
         ckpt_path = Path(args.ckpt)
+        
+        FINETUNE = os.environ.get("FINETUNE", "0") == "1"   # export FINETUNE=1 to finetune
+        
         if ckpt_path.is_file():
-            start_epoch, global_step = load_checkpoint(
-                ckpt_path,
-                ddp_model,
-                ema_model,
-                optimizer,
-                scheduler,
-                discriminator,
-                disc_optimizer,
-                disc_scheduler,
-            )
-            logger.info(f"[Rank {rank}] Resumed from {ckpt_path} (epoch={start_epoch}, step={global_step}).")
+            if not FINETUNE:
+                start_epoch, global_step = load_checkpoint(
+                    ckpt_path,
+                    ddp_model,
+                    ema_model,
+                    optimizer,
+                    scheduler,
+                    discriminator,
+                    disc_optimizer,
+                    disc_scheduler,
+                )
+                logger.info(f"[Rank {rank}] Resumed from {ckpt_path} (epoch={start_epoch}, step={global_step}).")
+            else:
+                ckpt = torch.load(ckpt_path, map_location="cpu")
+                ddp_model.module.load_state_dict(ckpt["model"])
+                if "ema" in ckpt:
+                    ema_model.load_state_dict(ckpt["ema"])
+                start_epoch, global_step = 0, 0
+                logger.info("Loaded pretrained weights only — not loading optimizer states, lr, scheduler, etc.")
         else:
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
     if rank == 0:
