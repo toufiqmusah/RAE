@@ -180,7 +180,7 @@ torchrun --standalone --nproc_per_node=$N \
   --image-size 256 \
   --precision fp32 \
   --wandb
-  # --ckpt <optional_ckpt> \
+  --ckpt $CKPT \
 ```
 
 
@@ -200,6 +200,7 @@ N=4
 CONFIG=configs/stage1/training/DINOv2-B_decXL_continue.yaml
 DATA_PATH=../BiomedParseDataRAE/train
 RESULTS_DIR=results_medrae_continue/stage1
+export FINETUNE=1
 
 torchrun --standalone --nproc_per_node=$N \
   src/train_stage1.py \
@@ -209,7 +210,7 @@ torchrun --standalone --nproc_per_node=$N \
   --image-size 256 \
   --precision fp32 \
   --wandb
-  # --ckpt <optional_ckpt> \
+  --ckpt <optional_ckpt> \
 ```
 
 **Logging.** To enable `wandb`, firstly set `WANDB_KEY`, `ENTITY`, and `PROJECT` as environment variables:

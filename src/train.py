@@ -155,8 +155,8 @@ def main(args):
     global_batch_size = int(training_cfg.get("global_batch_size", 1024))
     num_workers = int(training_cfg.get("num_workers", 4))
     log_every = int(training_cfg.get("log_every", 100))
-    ckpt_every = int(training_cfg.get("ckpt_every", 5_000))
-    sample_every = int(training_cfg.get("sample_every", 10_000))
+    ckpt_every = int(training_cfg.get("ckpt_every", 3_500))
+    sample_every = int(training_cfg.get("sample_every", 3_500))
     cfg_scale_override = training_cfg.get("cfg_scale", None)
     default_seed = int(training_cfg.get("global_seed", 0))
     global_seed = args.global_seed if args.global_seed is not None else default_seed
@@ -294,6 +294,10 @@ def main(args):
         f"per-GPU batch={micro_batch_size * grad_accum_steps}, global batch={global_batch_size}"
     )
     logger.info(f"Precision mode: {args.precision}")
+
+    logger.info("Num batches: %d", len(loader))
+    logger.info("Grad accum steps: %d", grad_accum_steps)
+
 
     loader_batches = len(loader)
     if loader_batches % grad_accum_steps != 0:

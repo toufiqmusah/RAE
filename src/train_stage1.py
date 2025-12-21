@@ -17,6 +17,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import time
 
 import torch
 import torch.distributed as dist
@@ -57,6 +58,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--global-seed", type=int, default=None, help="Override training.global_seed from the config.")    
     parser.add_argument("--ckpt", type=str, default=None, help="Optional checkpoint path to resume training.")
     parser.add_argument('--wandb', action='store_true', help='Use Weights & Biases for logging if set.')
+    parser.add_argument('--latest', action='store_true', help='Restart latest.pt')
+
     return parser.parse_args()
 
 def create_logger(logging_dir):
@@ -215,6 +218,15 @@ def load_checkpoint(
 
 def main():
     args = parse_args()
+    if args.latest:
+        latest_pt = os.path.join(args.results_dir, 'latest.pt')
+        if os.path.isfile(latest_pt):
+            print(f'latest.pt checkpoint found in {latest_pt}. Loading from here.')
+            args.ckpt = latest_pt
+        else:
+            print(f'latest.pt checkpoint not found in {latest_pt}. Starting from scratch.')
+            args.ckpt = None
+
     rank, world_size, device = setup_distributed()
     (rae_config, *_) = parse_configs(args.config)
     full_cfg = OmegaConf.load(args.config)
@@ -258,12 +270,13 @@ def main():
     torch.cuda.manual_seed_all(seed)
     if rank == 0:
         os.makedirs(args.results_dir, exist_ok=True)
-        experiment_index = len(glob(f"{args.results_dir}/*")) - 1
+        experiment_index = len(glob(f"{args.results_dir}/*")) #- 1
         model_target = str(rae_config.get("target", "stage1"))
+        run_name = str(rae_config.get("run_name", "stage1"))
         model_string_name = model_target.split(".")[-1]
         precision_suffix = f"-{args.precision}" if args.precision == "bf16" else ""
         experiment_name = (
-            f"{experiment_index:03d}-{model_string_name}{precision_suffix}"
+            f"{experiment_index:03d}-{model_string_name}{precision_suffix}-{run_name}"
         )
         experiment_dir = os.path.join(args.results_dir, experiment_name)
         checkpoint_dir = os.path.join(experiment_dir, "checkpoints")
@@ -274,6 +287,8 @@ def main():
             entity = os.environ["ENTITY"]
             project = os.environ["PROJECT"]
             wandb_utils.initialize(args, entity, experiment_name, project)
+            
+
     else:
         experiment_dir = None
         checkpoint_dir = None
@@ -332,29 +347,19 @@ def main():
     global_step = 0
     if args.ckpt:
         ckpt_path = Path(args.ckpt)
-        
-        FINETUNE = os.environ.get("FINETUNE", "0") == "1"   # export FINETUNE=1 to finetune
-        
+           
         if ckpt_path.is_file():
-            if not FINETUNE:
-                start_epoch, global_step = load_checkpoint(
-                    ckpt_path,
-                    ddp_model,
-                    ema_model,
-                    optimizer,
-                    scheduler,
-                    discriminator,
-                    disc_optimizer,
-                    disc_scheduler,
-                )
-                logger.info(f"[Rank {rank}] Resumed from {ckpt_path} (epoch={start_epoch}, step={global_step}).")
-            else:
-                ckpt = torch.load(ckpt_path, map_location="cpu")
-                ddp_model.module.load_state_dict(ckpt["model"])
-                if "ema" in ckpt:
-                    ema_model.load_state_dict(ckpt["ema"])
-                start_epoch, global_step = 0, 0
-                logger.info("Loaded pretrained weights only — not loading optimizer states, lr, scheduler, etc.")
+            start_epoch, global_step = load_checkpoint(
+                ckpt_path,
+                ddp_model,
+                ema_model,
+                optimizer,
+                scheduler,
+                discriminator,
+                disc_optimizer,
+                disc_scheduler,
+            )
+            logger.info(f"[Rank {rank}] Resumed from {ckpt_path} (epoch={start_epoch}, step={global_step}).")
         else:
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
     if rank == 0:
@@ -388,12 +393,20 @@ def main():
     gan_start_step = gan_start_epoch * steps_per_epoch
     disc_update_step = disc_update_epoch * steps_per_epoch
     lpips_start_step = lpips_start_epoch * steps_per_epoch
+
+    resume_step = global_step % steps_per_epoch
+
     for epoch in range(start_epoch, num_epochs):
         ddp_model.train()
         sampler.set_epoch(epoch)
         epoch_metrics: Dict[str, torch.Tensor] = defaultdict(lambda: torch.zeros(1, device=device))
         num_batches = 0
         for step, (images, _) in enumerate(loader):
+            if epoch == start_epoch and step < resume_step:
+                if rank == 0:
+                    if step % 100 == 0:
+                        logger.info(f'Skipping step {step}...')
+                continue
             use_gan = global_step >= gan_start_step and disc_weight > 0.0
             train_disc = global_step >= disc_update_step and disc_weight > 0.0
             use_lpips = global_step >= lpips_start_step and perceptual_weight > 0.0
@@ -531,8 +544,33 @@ def main():
                     discriminator,
                     disc_optimizer,
                     disc_scheduler,
-                )
+                ) 
+                logger.info(f'Saved checkpoint to {ckpt_path}')
 
+                latest_path=f"{os.path.dirname(os.path.dirname(checkpoint_dir))}/latest.pt"
+                save_checkpoint(
+                    latest_path,
+                    global_step,
+                    epoch,
+                    ddp_model,
+                    ema_model,
+                    optimizer,
+                    scheduler,
+                    discriminator,
+                    disc_optimizer,
+                    disc_scheduler,
+                )
+                latest_txt_path = latest_path.replace(".pt", ".txt")
+                with open(latest_txt_path, "w") as f:
+                    f.write(f"checkpoint: latest.pt\n")
+                    f.write(f"epoch: {epoch}\n")
+                    f.write(f"global_step: {global_step}\n")
+                    f.write(f"model: {ddp_model.module.__class__.__name__,}\n")
+                    f.write(f"ema: {ema_model is not None}\n")
+                    f.write(f"scheduler: {scheduler is not None}\n")
+                    f.write(f"discriminator: {discriminator is not None}\n")
+                    f.write(f"saved_at: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                logger.info(f'Saved checkpoint to {latest_path}')
             global_step += 1
 
         if rank == 0 and num_batches > 0:

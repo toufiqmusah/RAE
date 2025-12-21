@@ -52,6 +52,7 @@ class RAE(nn.Module):
         decoder_config.patch_size = decoder_patch_size
         decoder_config.image_size = int(decoder_patch_size * sqrt(self.base_patches)) 
         self.decoder = GeneralDecoder(decoder_config, num_patches=self.base_patches)
+        
         # load pretrained decoder weights
         if pretrained_decoder_path is not None:
             print(f"Loading pretrained decoder from {pretrained_decoder_path}")

@@ -8,6 +8,7 @@ stage_1:
       dinov2_path: 'facebook/dinov2-with-registers-base'
       normalize: true
     decoder_config_path: 'configs/decoder/ViTXL'
+    # pretrained_decoder_path: '/pscratch/sd/j/jehr/MEDRAE/RAE/results_medrae/stage1/005-RAE/checkpoints/0010500.pt'
     pretrained_decoder_path: 'models/decoders/dinov2/wReg_base/ViTXL_n08/model.pt'
     noise_tau: 0.0
     reshape_to_2d: true
@@ -63,13 +64,13 @@ misc:
 training:
   global_seed: 0
   epochs: 1400
-  global_batch_size: 1024
-  grad_accum_steps: 1 # change according to your GPU memory
+  global_batch_size: 1056 #1024
+  grad_accum_steps: 4 # change according to your GPU memory
   ema_decay: 0.9995
   num_workers: 4
   log_every: 100
-  ckpt_every: 5000
-  sample_every: 10000
+  ckpt_every: 1000
+  sample_every: 1000
   base_lr: 0.0002
   final_lr: 0.00002
   beta: [0.9, 0.95]

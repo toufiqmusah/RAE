@@ -1,5 +1,6 @@
 stage_1:
   target: stage1.RAE
+  run_name: 'DINOv2-B_decXL_finetune_lower_lr'
   params:
     encoder_cls: 'Dinov2withNorm'
     encoder_config_path: 'facebook/dinov2-with-registers-base'
@@ -10,7 +11,8 @@ stage_1:
     decoder_config_path: 'configs/decoder/ViTXL'
     noise_tau: 0.8 # training 0.8, at inference time always set to 0
     reshape_to_2d: true
-    #normalization_stat_path: 'models/stats/dinov2/wReg_base/imagenet1k/stat.pt'
+    pretrained_decoder_path: 'models/decoders/dinov2/wReg_base/ViTXL_n08/model.pt'
+    # normalization_stat_path: 'models/stats/dinov2/wReg_base/imagenet1k/stat.pt'
 
 
 training:
@@ -20,18 +22,18 @@ training:
   num_workers: 8
   clip_grad: 0.0
   log_interval: 100
-  checkpoint_interval: 3500
+  checkpoint_interval: 100 #3500
   sample_interval: 0
   optimizer:
-    lr: 2.0e-4
+    lr: 2.0e-5
     betas: [0.9, 0.95]
     weight_decay: 0.0
   scheduler:
     type: cosine
     warmup_epochs: 1
     decay_end_epoch: 16
-    base_lr: 2.0e-4
-    final_lr: 2.0e-5
+    base_lr: 2.0e-5
+    final_lr: 2.0e-6
 
 gan:
   disc:
@@ -59,8 +61,8 @@ gan:
     gen_loss: vanilla
     disc_weight: 0.75
     perceptual_weight: 1.0
-    disc_start: 8
-    disc_upd_start: 6
+    disc_start: 2
+    disc_upd_start: 2
     lpips_start: 0
     max_d_weight: 10000.0
     disc_updates: 1
