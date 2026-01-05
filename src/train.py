@@ -256,6 +256,7 @@ def main(args):
         opt_state = checkpoint.get("opt")
         sched_state = checkpoint.get("scheduler")
         train_steps = int(checkpoint.get("train_steps", 0))
+        logger.info(f'Loaded checkpoint from {args.ckpt}')
 
     model_param_count = sum(p.numel() for p in model.parameters())
     logger.info(f"Model Parameters: {model_param_count/1e6:.2f}M")

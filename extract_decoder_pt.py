@@ -58,9 +58,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="Reconstruct an input image using a Stage-1 RAE loaded from config."
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--ckpt_pt",
         required=True,
@@ -83,7 +81,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     main(args)
-
 
 
 # ckpt_pt = '/pscratch/sd/j/jehr/MEDRAE/RAE/results_medrae/stage1/005-RAE/checkpoints/0010500.pt'

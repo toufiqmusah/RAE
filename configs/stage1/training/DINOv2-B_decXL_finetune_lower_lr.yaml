@@ -25,15 +25,15 @@ training:
   checkpoint_interval: 100 #3500
   sample_interval: 0
   optimizer:
-    lr: 2.0e-5
+    lr: 2.0e-6
     betas: [0.9, 0.95]
     weight_decay: 0.0
   scheduler:
     type: cosine
     warmup_epochs: 1
     decay_end_epoch: 16
-    base_lr: 2.0e-5
-    final_lr: 2.0e-6
+    base_lr: 2.0e-6
+    final_lr: 2.0e-7
 
 gan:
   disc:

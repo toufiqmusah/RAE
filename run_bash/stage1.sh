@@ -15,7 +15,7 @@ RESULTS_DIR=results_medrae_finetune/stage1
 N=4
 CONFIG=configs/stage1/training/DINOv2-B_decXL_finetune_lower_lr.yaml
 DATA_PATH=../BiomedParseDataRAE/train
-RESULTS_DIR=results_medrae_finetune_lower_lr/stage1
+RESULTS_DIR=results_medrae_finetune_lower_lr_v2/stage1
 
 
 torchrun --standalone --nproc_per_node=$N   src/train_stage1.py   --config $CONFIG   --data-path $DATA_PATH   --results-dir $RESULTS_DIR   --image-size 256   --precision fp32   --wandb --latest
